@@ -4,6 +4,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import './style.css';
 
 function main() {
+    let mixer,action,dt, lastframe = Date.now(), aniMode =1;
+    let apple,speedA = 0,gravity = -0.008,stopApple = true;
+    let  pigeon,speedP =0.1, stopPigeon = true;
     const canvas = document.querySelector('#c');
     const renderer = new THREE.WebGLRenderer({ canvas });
     renderer.gammaOutput = true;
@@ -20,11 +23,8 @@ function main() {
     controls.target.set(0, 5, 0);
     controls.update();
 
-    let stop = true;
-    let aniMode =1;
-
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('white');
+    scene.background = new THREE.Color('#444C59');
 
     {
         const planeSize = 40;
@@ -62,7 +62,7 @@ function main() {
     }
 
     function frameArea(sizeToFitOnScreen, boxSize, boxCenter, camera) {
-        const halfSizeToFitOnScreen = sizeToFitOnScreen * 1.5;
+        const halfSizeToFitOnScreen = sizeToFitOnScreen * 1.1;
         const halfFovY = THREE.MathUtils.degToRad(camera.fov * .5);
         const distance = halfSizeToFitOnScreen / Math.tan(halfFovY);
         // compute a unit vector that points in the direction the camera is now
@@ -84,29 +84,34 @@ function main() {
         camera.updateProjectionMatrix();
 
         // point the camera to look at the center of the box
-        camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z);
+        camera.lookAt(0, 0, boxCenter.z);
     }
-    let apple;
     {
         const gltfLoader = new GLTFLoader();
         gltfLoader.load('./bowler-hat.glb', (gltf) => {
             const root = gltf.scene;
+            mixer = new THREE.AnimationMixer( gltf.scene );
+            action = mixer.clipAction( gltf.animations[ 0 ] );
             scene.add(root);
             apple = root.getObjectByName('apple');
+            pigeon = root.getObjectByName('pigeon');
+            pigeon.position.z = -renderer.domElement.clientWidth/2/3/25;
             console.log(dumpObject(root).join('\n'));
-            console.log(apple.position.y);
+            console.log(pigeon.position.z);
+            
+
             // compute the box that contains all the stuff
             // from root and below
             const box = new THREE.Box3().setFromObject(root);
 
-            const boxSize = box.getSize(new THREE.Vector3()).length();
-            const boxCenter = box.getCenter(new THREE.Vector3());
+            const boxSize = 15;
+            const boxCenter = new THREE.Vector3( 0, 2.5, 0 );
 
             // set the camera to frame the box
             frameArea(boxSize * 0.5, boxSize, boxCenter, camera);
 
             // update the Trackball controls to handle the new size
-            controls.maxDistance = boxSize * 10;
+            controls.maxDistance = boxSize * 1.5;
             controls.target.copy(boxCenter);
             controls.update();
         });
@@ -142,17 +147,21 @@ function main() {
     
         // Don't follow the link
         event.preventDefault();
-        stop = false;
+        stopApple = false;
+        stopPigeon = false;
         // Log the clicked element in the console
-        console.log(stop);
+        // console.log(stop);
     
     }, false);
 
-    let speed = 0;
-    let  gravity = -0.01;  
 
     function render() {
-         // convert to seconds
+
+         dt = (Date.now()-lastframe)/1000;
+         if(mixer){
+            mixer.update(dt);       
+        }
+        lastframe = Date.now();
 
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement;
@@ -160,17 +169,29 @@ function main() {
             camera.updateProjectionMatrix();
         }
 
-        if (aniMode =1 & stop == false) {
+        if (aniMode =1 & stopApple == false) {
            
                 if (apple.position.y >-4) { 
-                    apple.position.y = apple.position.y + speed;
-                    speed = speed + gravity;
+                    apple.position.y = apple.position.y + speedA;
+                    speedA = speedA + gravity;
                 }
                 else{
-                    stop = true;
+                    stopApple = true;
                 }
             
         }
+        if (aniMode =1 & stopPigeon == false) {
+
+            if (pigeon.position.z <-0.026839667931199074) { 
+                action.play();
+                pigeon.position.z = pigeon.position.z + speedP;
+            }
+            else{
+                stopPigeon = true;
+                action.stopAllAction ();
+            }
+        
+    }
 
         renderer.render(scene, camera);
 

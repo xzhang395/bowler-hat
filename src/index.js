@@ -4,9 +4,11 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import './style.css';
 
 function main() {
-    let mixer,action,dt, lastframe = Date.now(), aniMode =1;
-    let apple,speedA = 0,gravity = -0.008,stopApple = true;
-    let  pigeon,speedP =0.1, stopPigeon = true;
+    let mixer, dt, lastframe = Date.now(), aniMode = 1, playtime, frametime, logtime = true, mixerOg, actionO;
+    let apple, speedA = 0, gravity = -0.05, startApple = false;
+    let pigeon, actionP, speedP = 0.2, startPigeon = false, pigeonStartz;
+    let head, startHead = false;
+    let ogeyes, OG, startOG = false, actionE;
     const canvas = document.querySelector('#c');
     const renderer = new THREE.WebGLRenderer({ canvas });
     renderer.gammaOutput = true;
@@ -90,22 +92,55 @@ function main() {
         const gltfLoader = new GLTFLoader();
         gltfLoader.load('./bowler-hat.glb', (gltf) => {
             const root = gltf.scene;
-            mixer = new THREE.AnimationMixer( gltf.scene );
-            action = mixer.clipAction( gltf.animations[ 0 ] );
+            mixer = new THREE.AnimationMixer(gltf.scene);
+            actionP = mixer.clipAction(gltf.animations[0]);
             scene.add(root);
             apple = root.getObjectByName('apple');
             pigeon = root.getObjectByName('pigeon');
-            pigeon.position.z = -renderer.domElement.clientWidth/2/3/25;
+            head = root.getObjectByName('manhead');
+            pigeonStartz = -renderer.domElement.clientWidth / 2 / 3 / 25;
+            pigeon.position.z = pigeonStartz;
             console.log(dumpObject(root).join('\n'));
             console.log(pigeon.position.z);
-            
+
 
             // compute the box that contains all the stuff
             // from root and below
             const box = new THREE.Box3().setFromObject(root);
 
             const boxSize = 15;
-            const boxCenter = new THREE.Vector3( 0, 2.5, 0 );
+            const boxCenter = new THREE.Vector3(0, 2.5, 0);
+
+            // set the camera to frame the box
+            frameArea(boxSize * 0.5, boxSize, boxCenter, camera);
+
+            // update the Trackball controls to handle the new size
+            controls.maxDistance = boxSize * 1.5;
+            controls.target.copy(boxCenter);
+            controls.update();
+        });
+        gltfLoader.load('./og.glb', (gltf) => {
+            const rootog = gltf.scene;
+            mixerOg = new THREE.AnimationMixer(rootog);
+            actionO = mixerOg.clipAction(gltf.animations[0]);
+            actionO.setLoop(THREE.LoopOnce);
+            actionO.clampWhenFinished = true;
+            actionE = mixerOg.clipAction(gltf.animations[1]);
+
+            scene.add(rootog);
+            OG = rootog.getObjectByName('OG');
+            ogeyes = rootog.getObjectByName('ogeyes');
+            ogeyes.position.set(2.3996, 0, -0.25);
+            OG.add(ogeyes);
+            ogeyes.rotation.x = Math.PI * 2;
+            console.log(dumpObject(rootog).join('\n'));
+
+            // compute the box that contains all the stuff
+            // from root and below
+            const box = new THREE.Box3().setFromObject(rootog);
+
+            const boxSize = 15;
+            const boxCenter = new THREE.Vector3(0, 2.5, 0);
 
             // set the camera to frame the box
             frameArea(boxSize * 0.5, boxSize, boxCenter, camera);
@@ -144,24 +179,35 @@ function main() {
 
         // If the clicked element doesn't have the right selector, bail
         if (!event.target.matches('.bttn-next')) return;
-    
+
         // Don't follow the link
         event.preventDefault();
-        stopApple = false;
-        stopPigeon = false;
-        // Log the clicked element in the console
-        // console.log(stop);
-    
+        if (aniMode == 1) {
+            startApple = true;
+            startPigeon = true;
+        }
+        if (aniMode == 2) {
+            startHead = true;
+            startPigeon = true;
+        }
+        if (aniMode == 3) {
+            startHead = true;
+        }
     }, false);
-
 
     function render() {
 
-         dt = (Date.now()-lastframe)/1000;
-         if(mixer){
-            mixer.update(dt);       
+        dt = (Date.now() - lastframe) / 1000;
+        if (mixer) {
+            mixer.update(dt);
+        }
+        if (mixerOg) {
+            mixerOg.update(dt);
+            // console.log(ogeyes.scale.z);
+
         }
         lastframe = Date.now();
+
 
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement;
@@ -169,36 +215,81 @@ function main() {
             camera.updateProjectionMatrix();
         }
 
-        if (aniMode =1 & stopApple == false) {
-           
-                if (apple.position.y >-4) { 
-                    apple.position.y = apple.position.y + speedA;
-                    speedA = speedA + gravity;
-                }
-                else{
-                    stopApple = true;
-                }
-            
-        }
-        if (aniMode =1 & stopPigeon == false) {
+        if (startApple == true) {
 
-            if (pigeon.position.z <-0.026839667931199074) { 
-                action.play();
-                pigeon.position.z = pigeon.position.z + speedP;
+            if (apple.position.y > -4) {
+                apple.position.y = apple.position.y + speedA;
+                speedA = speedA + gravity;
             }
-            else{
-                stopPigeon = true;
-                action.stopAllAction ();
+            else {
+                startApple = false;
             }
-        
-    }
+
+        }
+        if (startPigeon == true) {
+            if (aniMode == 2) {
+                actionP.paused = false;
+                if (pigeon.position.z < -pigeonStartz) {
+                    pigeon.position.z = pigeon.position.z + speedP;
+                }
+                else {
+                    actionP.paused = true;
+                    aniMode = 3;
+                }
+            }
+            if (aniMode == 1) {
+
+                if (pigeon.position.z < -0.026839667931199074) {
+                    actionP.play();
+                    if (logtime) { playtime = Date.now(); logtime = false; }
+                    pigeon.position.z = pigeon.position.z + speedP;
+                }
+                else {
+                    frametime = (Date.now() - playtime) / 1000;
+                    if (Math.abs(frametime - Math.round(frametime)) < 0.01) {
+                        aniMode = 2;
+                        startPigeon = false;
+                        actionP.paused = true;
+                    }
+                }
+            }
+
+        }
+        if (startHead == true) {
+            if (aniMode == 2) {
+                if (head.position.z < 3.5) {
+                    head.position.z = head.position.z + speedP;
+                }
+                else { startHead = false; }
+            }
+            if (aniMode == 3) {
+                if (head.position.z > 0.1) {
+                    head.position.z = head.position.z - 0.2;
+                }
+                else {
+                    head.position.y = head.position.y - 0.5;
+                    const rate = 0.2;
+                    head.scale.x = head.scale.x - rate;
+                    head.scale.y = head.scale.y - rate;
+                    head.scale.z = head.scale.z - rate;
+                    if(head.position.y<0){
+                        startHead = false;
+                        startOG = true;
+                    }
+                }
+            }
+        }
+        if (startOG == true) {
+            actionO.play();
+            actionE.play();
+        }
 
         renderer.render(scene, camera);
 
         requestAnimationFrame(render);
     }
-
     requestAnimationFrame(render);
+
 }
 
 main();

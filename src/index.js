@@ -25,13 +25,14 @@ function main() {
 
     const controls = new OrbitControls(camera, canvas);
     controls.target.set(0, 1, 0);
+    controls.maxPolarAngle = Math.PI/1.8; 
     resetView();
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#7E7CBB');
 
     {
-        const planeSize = 1000;
+        const planeSize = 8000;
         const planeGeo = new THREE.PlaneBufferGeometry(30, planeSize);
         const planeMat = new THREE.MeshPhongMaterial({
             color:'#6DC6E7',
@@ -193,7 +194,6 @@ function main() {
         controls.update();
     }
     function render() {
-
         dt = (Date.now() - lastframe) / 1000;
         if (mixer) {
             mixer.update(dt);
@@ -232,7 +232,7 @@ function main() {
                 }
                 else {
                     actionP.paused = true;
-                    aniMode = 3;
+                    
                     pigeon.visible = false;
                     startPigeon = false;
                 }
@@ -242,7 +242,6 @@ function main() {
                 if (pigeon.position.z < -0.026839667931199074) {
                     actionP.paused = false;
                     actionP.play();
-                    console.log(logtime);
                     if (logtime) { playtime = Date.now(); logtime = false; }
                     pigeon.position.z = pigeon.position.z + speedP;
                 }
@@ -263,6 +262,7 @@ function main() {
                     head.position.z = head.position.z + 0.1;
                 }
                 else { startHead = false; 
+                    aniMode = 3;
                     }
             }
             if (aniMode == 3) {

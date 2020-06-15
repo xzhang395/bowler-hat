@@ -10,19 +10,30 @@ html, body {
 }
 
 .bttn-next {
-    width: 100px;
-    height: 100px;
-    border-radius: 50px;
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
     background: blue;
-    opacity: 0.5;
+    opacity: 0.3;
     position: absolute;
-    bottom: 100px;
-    left: 50%;
-    margin-left: -50px;
+    bottom: 50px;
+    right: 50px;
+    z-index: 10;
 }
 
 .bttn-next:hover {
     cursor: pointer;
     transform: scale(1.1);
     transition: 0.2s;
+}
+
+.dot{
+    width: 15px;
+    height: 15px;
+    border-radius: 7.5px;
+    background: blue;
+    opacity: 0.5;
+    position: absolute;
+    bottom: 67.5px;
+    right: 67.5px;
 }

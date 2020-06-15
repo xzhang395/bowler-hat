@@ -4,11 +4,13 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import './style.css';
 
 function main() {
-    let mixer, dt, lastframe = Date.now(), aniMode = 1, playtime, frametime, logtime = true, mixerOg, actionO;
-    let apple, speedA = 0, gravity = -0.05, startApple = false;
-    let pigeon, actionP, speedP = 0.2, startPigeon = false, pigeonStartz;
+    const boxSize = 8,boxCenter =  new THREE.Vector3(0, 4, 0);
+    let mixer, dt, lastframe = Date.now(), aniMode = 1, playtime, frametime, logtime = true, mixerOg, actionO, reset = false;
+    let apple, speedA = 0, gravity = -0.05, startApple = false,AstartP;
+    let pigeon, actionP, speedP = 0.1, startPigeon = false, pigeonStartz;
     let head, startHead = false;
-    let ogeyes, OG, startOG = false, actionE;
+    let ogeyes, OG, startOG = false, actionE, OstartP;
+    let hat, HDstartP;
     const canvas = document.querySelector('#c');
     const renderer = new THREE.WebGLRenderer({ canvas });
     renderer.gammaOutput = true;
@@ -22,26 +24,18 @@ function main() {
     camera.position.set(50, 20, 0);
 
     const controls = new OrbitControls(camera, canvas);
-    controls.target.set(0, 5, 0);
-    controls.update();
+    controls.target.set(0, 1, 0);
+    resetView();
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#444C59');
+    scene.background = new THREE.Color('#7E7CBB');
 
     {
-        const planeSize = 40;
-
-        const loader = new THREE.TextureLoader();
-        const texture = loader.load('https://threejsfundamentals.org/threejs/resources/images/checker.png');
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.magFilter = THREE.NearestFilter;
-        const repeats = planeSize / 2;
-        texture.repeat.set(repeats, repeats);
-
-        const planeGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
+        const planeSize = 1000;
+        const planeGeo = new THREE.PlaneBufferGeometry(30, planeSize);
         const planeMat = new THREE.MeshPhongMaterial({
-            map: texture,
+            color:'#6DC6E7',
+            // map: texture,
             side: THREE.DoubleSide,
         });
         const mesh = new THREE.Mesh(planeGeo, planeMat);
@@ -97,27 +91,26 @@ function main() {
             scene.add(root);
             apple = root.getObjectByName('apple');
             pigeon = root.getObjectByName('pigeon');
+            pigeon.visible = false;
             head = root.getObjectByName('manhead');
+            hat = root.getObjectByName('hat');
             pigeonStartz = -renderer.domElement.clientWidth / 2 / 3 / 25;
             pigeon.position.z = pigeonStartz;
-            console.log(dumpObject(root).join('\n'));
-            console.log(pigeon.position.z);
-
-
+            // console.log(dumpObject(root).join('\n'));
+            AstartP = apple.position.y;
+            HDstartP = hat.position.y;
             // compute the box that contains all the stuff
             // from root and below
             const box = new THREE.Box3().setFromObject(root);
 
-            const boxSize = 15;
-            const boxCenter = new THREE.Vector3(0, 2.5, 0);
-
             // set the camera to frame the box
-            frameArea(boxSize * 0.5, boxSize, boxCenter, camera);
+            frameArea(boxSize, boxSize,boxCenter, camera);
 
             // update the Trackball controls to handle the new size
-            controls.maxDistance = boxSize * 1.5;
+            controls.maxDistance = 10 * 1.5;
             controls.target.copy(boxCenter);
             controls.update();
+
         });
         gltfLoader.load('./og.glb', (gltf) => {
             const rootog = gltf.scene;
@@ -133,22 +126,9 @@ function main() {
             ogeyes.position.set(2.3996, 0, -0.25);
             OG.add(ogeyes);
             ogeyes.rotation.x = Math.PI * 2;
-            console.log(dumpObject(rootog).join('\n'));
+            // console.log(dumpObject(rootog).join('\n'));
+            OstartP = OG.position.y;
 
-            // compute the box that contains all the stuff
-            // from root and below
-            const box = new THREE.Box3().setFromObject(rootog);
-
-            const boxSize = 15;
-            const boxCenter = new THREE.Vector3(0, 2.5, 0);
-
-            // set the camera to frame the box
-            frameArea(boxSize * 0.5, boxSize, boxCenter, camera);
-
-            // update the Trackball controls to handle the new size
-            controls.maxDistance = boxSize * 1.5;
-            controls.target.copy(boxCenter);
-            controls.update();
         });
     }
 
@@ -163,6 +143,7 @@ function main() {
         return needResize;
     }
 
+
     function dumpObject(obj, lines = [], isLast = true, prefix = '') {
         const localPrefix = isLast ? '└─' : '├─';
         lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
@@ -176,25 +157,41 @@ function main() {
     }
 
     document.addEventListener('click', function (event) {
-
         // If the clicked element doesn't have the right selector, bail
         if (!event.target.matches('.bttn-next')) return;
 
         // Don't follow the link
         event.preventDefault();
         if (aniMode == 1) {
+            resetView();
+            logtime =true;
+            actionP.reset();
+            speedA = 0;
+            pigeon.position.z = pigeonStartz;
             startApple = true;
             startPigeon = true;
         }
-        if (aniMode == 2) {
+        if (aniMode == 2) { 
+            resetView();     
             startHead = true;
             startPigeon = true;
         }
         if (aniMode == 3) {
+            resetView();
             startHead = true;
+        }
+        if (aniMode == 4) {
+            resetView();
+            reset = true;
         }
     }, false);
 
+    function resetView(){
+        controls.reset(); 
+        frameArea(boxSize, boxSize,boxCenter, camera);
+        controls.target.copy(boxCenter);
+        controls.update();
+    }
     function render() {
 
         dt = (Date.now() - lastframe) / 1000;
@@ -203,7 +200,6 @@ function main() {
         }
         if (mixerOg) {
             mixerOg.update(dt);
-            // console.log(ogeyes.scale.z);
 
         }
         lastframe = Date.now();
@@ -223,10 +219,12 @@ function main() {
             }
             else {
                 startApple = false;
+                apple.visible = false;
             }
 
         }
         if (startPigeon == true) {
+            pigeon.visible = true;
             if (aniMode == 2) {
                 actionP.paused = false;
                 if (pigeon.position.z < -pigeonStartz) {
@@ -235,12 +233,16 @@ function main() {
                 else {
                     actionP.paused = true;
                     aniMode = 3;
+                    pigeon.visible = false;
+                    startPigeon = false;
                 }
             }
             if (aniMode == 1) {
-
+                pigeon.visible=true;
                 if (pigeon.position.z < -0.026839667931199074) {
+                    actionP.paused = false;
                     actionP.play();
+                    console.log(logtime);
                     if (logtime) { playtime = Date.now(); logtime = false; }
                     pigeon.position.z = pigeon.position.z + speedP;
                 }
@@ -258,30 +260,89 @@ function main() {
         if (startHead == true) {
             if (aniMode == 2) {
                 if (head.position.z < 3.5) {
-                    head.position.z = head.position.z + speedP;
+                    head.position.z = head.position.z + 0.1;
                 }
-                else { startHead = false; }
+                else { startHead = false; 
+                    }
             }
             if (aniMode == 3) {
                 if (head.position.z > 0.1) {
                     head.position.z = head.position.z - 0.2;
                 }
                 else {
+                    head.position.z = 0;
                     head.position.y = head.position.y - 0.5;
                     const rate = 0.2;
                     head.scale.x = head.scale.x - rate;
                     head.scale.y = head.scale.y - rate;
                     head.scale.z = head.scale.z - rate;
-                    if(head.position.y<0){
-                        startHead = false;
-                        startOG = true;
+                    hat.position.y = hat.position.y - 0.5;
+                    hat.scale.x = hat.scale.x - rate;
+                    hat.scale.y = hat.scale.y - rate;
+                    hat.scale.z = hat.scale.z - rate;
+                    if (hat.position.y < 0) {
+                        setTimeout(() => {
+                            startHead = false;
+                            startOG = true;
+                            head.visible = false;
+                            hat.visible = false;
+                        }, 50);
+
                     }
                 }
             }
         }
         if (startOG == true) {
+            OG.visible = true;
+            actionO.reset();
+            actionE.reset();
             actionO.play();
             actionE.play();
+            aniMode = 4;
+            startOG = false;
+        }
+        if (reset) {
+            aniMode = 1;
+            if (OG.scale.x > 0) {
+                const rate = 0.2;
+                OG.scale.x = OG.scale.x - rate;
+                OG.scale.y = OG.scale.y - rate;
+                OG.scale.z = OG.scale.z - rate;
+            }
+            else{
+                OG.scale.x = 0;
+                OG.scale.y = 0;
+                OG.scale.z = 0;
+                OG.visible = false;
+                startOG = false;
+                head.visible = true;
+                hat.visible = true;
+                if(hat.position.y<HDstartP){
+                    const rate = 0.2;
+                    head.scale.x = head.scale.x + rate;
+                    head.scale.y = head.scale.y + rate;
+                    head.scale.z = head.scale.z + rate;
+                    hat.position.y = hat.position.y + 0.5;
+                    hat.scale.x = hat.scale.x + rate;
+                    hat.scale.y = hat.scale.y + rate;
+                    hat.scale.z = hat.scale.z + rate;
+                    head.position.y = head.position.y + 0.5;
+                    speedA = 0;
+                    apple.position.y = 10;
+                }
+                else{
+                    apple.visible = true;
+                    if (apple.position.y > AstartP) {
+                        apple.position.y = apple.position.y + speedA;
+                        speedA = speedA + gravity;
+                    }else{
+                        apple.position.y = AstartP;
+                        
+                        reset = false;
+                    }
+                }
+            }
+
         }
 
         renderer.render(scene, camera);

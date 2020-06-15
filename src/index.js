@@ -5,7 +5,7 @@ import './style.css';
 
 function main() {
     const boxSize = 8,boxCenter =  new THREE.Vector3(0, 4, 0);
-    let mixer, dt, lastframe = Date.now(), aniMode = 1, playtime, frametime, logtime = true, mixerOg, actionO, reset = false;
+    let mixer, dt, lastframe = Date.now(), aniMode = 1, playtime, frametime, logtime = true, mixerOg, actionO, reset = false,modethree = false;
     let apple, speedA = 0, gravity = -0.05, startApple = false,AstartP;
     let pigeon, actionP, speedP = 0.1, startPigeon = false, pigeonStartz;
     let head, startHead = false;
@@ -180,6 +180,7 @@ function main() {
         if (aniMode == 3) {
             resetView();
             startHead = true;
+            modethree = true;
         }
         if (aniMode == 4) {
             resetView();
@@ -235,6 +236,7 @@ function main() {
                     
                     pigeon.visible = false;
                     startPigeon = false;
+                    aniMode = 3;
                 }
             }
             if (aniMode == 1) {
@@ -262,10 +264,10 @@ function main() {
                     head.position.z = head.position.z + 0.1;
                 }
                 else { startHead = false; 
-                    aniMode = 3;
+                    
                     }
             }
-            if (aniMode == 3) {
+            if (modethree) {
                 if (head.position.z > 0.1) {
                     head.position.z = head.position.z - 0.2;
                 }
@@ -286,6 +288,7 @@ function main() {
                             startOG = true;
                             head.visible = false;
                             hat.visible = false;
+                            modethree = false;
                         }, 50);
 
                     }
